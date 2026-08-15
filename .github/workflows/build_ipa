@@ -1,0 +1,46 @@
+name: Build IPA
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build IPA
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Frameworks
+        run: ./downloadFrameworks.sh
+
+      - name: Build Unsigned Archive
+        run: |
+          xcodebuild archive \
+            -project Code.xcodeproj \
+            -scheme CodeApp \
+            -configuration Release \
+            -archivePath $PWD/build/Code.xcarchive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Package to IPA
+        run: |
+          mkdir -p build/Payload
+          cp -r build/Code.xcarchive/Products/Applications/CodeApp.app build/Payload/
+          cd build
+          zip -r Code.ipa Payload
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ipa-build
+          path: build/Code.ipa
