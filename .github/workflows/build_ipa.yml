@@ -22,11 +22,14 @@ jobs:
       - name: Download Frameworks
         run: ./downloadFrameworks.sh
 
+      - name: List Schemes (Just in case it fails)
+        run: xcodebuild -list -project Code.xcodeproj
+
       - name: Build Unsigned Archive
         run: |
           xcodebuild archive \
             -project Code.xcodeproj \
-            -scheme CodeApp \
+            -scheme Code \
             -configuration Release \
             -archivePath $PWD/build/Code.xcarchive \
             CODE_SIGN_IDENTITY="" \
@@ -36,7 +39,8 @@ jobs:
       - name: Package to IPA
         run: |
           mkdir -p build/Payload
-          cp -r build/Code.xcarchive/Products/Applications/CodeApp.app build/Payload/
+          # Using a wildcard so it grabs the app regardless of its exact name
+          cp -r build/Code.xcarchive/Products/Applications/*.app build/Payload/
           cd build
           zip -r Code.ipa Payload
 
